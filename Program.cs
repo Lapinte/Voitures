@@ -12,30 +12,38 @@ namespace Voitures
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Entrez une lettre: ");
-            var debutNom = Console.ReadLine();
 
-            ListerMarques(debutNom);
+            SupprimerCategorie();
            
         }
 
-        public static void ListerMarques(string debutNom)
+        private static void ListerMarques()
         {
+            Console.WriteLine("Entrez une lettre: ");
+            
             //Création de la connexion
-            var connectionString = ConfigurationManager.ConnectionStrings["Connexion"].ConnectionString;
+           
 
-            using (var connexion = new SqlConnection(connectionString))
+            using (var connexion = GetConnexion())
             {
-
+                var debutNom = Console.ReadLine();
                 //Création d'une commande
-                var commande = new SqlCommand("SELECT * FROM Marques WHERE Nom Like'" + debutNom + "%'", connexion);
+                var commande = new SqlCommand("SELECT * FROM Marques WHERE Nom LIKE @debutNom + '%'", connexion);
+                commande.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "debutNom",
+                    Value = debutNom
+                });
 
                 // Mode connecté
                 connexion.Open();
                 SqlDataReader dataReader = commande.ExecuteReader();
                 while (dataReader.Read())
                 {
-                    Console.WriteLine($"Id:{dataReader.GetInt32(0)}, Nom:{dataReader.GetString(1)}");
+                    var indexColonneId = dataReader.GetOrdinal("Id");
+                    var indexColonneNom = dataReader.GetOrdinal("Nom");
+                    Console.WriteLine($@"Id:{dataReader.GetInt32(indexColonneId)}, 
+                                         Nom:{dataReader.GetString(indexColonneNom)}");
                 }
 
                 Console.ReadKey();
@@ -67,6 +75,81 @@ namespace Voitures
             Console.ReadKey();
 
             connexion.Close();
+        }
+
+        private static void CreerMarque()
+        {
+            Console.WriteLine("Nom de la marque: ");
+            var marque = Console.ReadLine();
+            
+            using (var connexion = GetConnexion())
+            {
+                //Création d'une commande
+                var sql = "INSERT INTO Marques (Nom) Values (@Nom)";
+                var commande = new SqlCommand(sql, connexion);
+                commande.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "Nom",
+                    Value = marque
+                });
+
+                // Mode connecté
+                connexion.Open();
+                commande.ExecuteNonQuery();
+                connexion.Close();
+            }
+        }
+
+        private static void CreerCategorie()
+        {
+            Console.WriteLine("Nom de la Catégorie: ");
+            var categorie = Console.ReadLine();
+
+            using (var connexion = GetConnexion())
+            {
+                //Création d'une commande
+                var sql = "INSERT INTO Categories (Nom) Values (@Nom)";
+                var commande = new SqlCommand(sql, connexion);
+                commande.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "Nom",
+                    Value = categorie
+                });
+
+                // Mode connecté
+                connexion.Open();
+                commande.ExecuteNonQuery();
+                connexion.Close();
+            }
+        }
+
+        private static void SupprimerCategorie()
+        {
+            Console.WriteLine("Nom de la Catégorie: ");
+            var categorie = Console.ReadLine();
+
+            using (var connexion = GetConnexion())
+            {
+                //Création d'une commande
+                var sql = "DELETE FROM Categories WHERE Nom = @Nom";
+                var commande = new SqlCommand(sql, connexion);
+                commande.Parameters.Add(new SqlParameter
+                {
+                    ParameterName = "Nom",
+                    Value = categorie
+                });
+
+                // Mode connecté
+                connexion.Open();
+                commande.ExecuteNonQuery();
+                connexion.Close();
+            }
+        }
+
+        private static SqlConnection GetConnexion()
+        {
+            var connectionString = ConfigurationManager.ConnectionStrings["Connexion"].ConnectionString;
+            return new SqlConnection(connectionString);
         }
     }
 }
